@@ -1,0 +1,39 @@
+package com.wordoftheday.api.work_of_the_day_api.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+
+@ControllerAdvice
+public class GlobalExceptionHandler {
+
+    // Handle GET/POST method not allowed
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(Map.of(
+                        "timestamp", LocalDateTime.now(),
+                        "status", HttpStatus.METHOD_NOT_ALLOWED.value(),
+                        "error", "Method Not Allowed",
+                        "message", "Please use the correct HTTP method: " + ex.getSupportedHttpMethods(),
+                        "path", ex.getMethod()
+                ));
+    }
+
+    // Handle all other exceptions
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                        "timestamp", LocalDateTime.now(),
+                        "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                        "error", "Internal Server Error",
+                        "message", ex.getMessage()
+                ));
+    }
+}

@@ -2,12 +2,16 @@ package com.wordoftheday.api.work_of_the_day_api.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.wordoftheday.api.work_of_the_day_api.model.dto.DefinitionDTO;
+import com.wordoftheday.api.work_of_the_day_api.model.dto.DictionaryEntry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class WrodApiService {
@@ -28,47 +32,63 @@ public class WrodApiService {
                 .build();
     }
 
-    // Fetch random word once
     private String fetchRandomWord() {
-        System.out.println("Fetching random word from API");
-        return randomWordClient.get()
-                .uri(uriBuilder -> uriBuilder.path("/word").queryParam("number", 1).build())
-                .retrieve()
-                .bodyToMono(String[].class)
-                .map(words -> words[0])
-                .block();
+        try {
+            return randomWordClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/word").queryParam("number", 1).build())
+                    .retrieve()
+                    .bodyToMono(String[].class)
+                    .map(words -> words[0])
+                    .block();
+        } catch (WebClientResponseException ex) {
+            throw new RuntimeException("Random Word API call failed: " + ex.getMessage());
+        } catch (Exception ex) {
+            throw new RuntimeException("Error fetching random word: " + ex.getMessage());
+        }
     }
 
-    // Fetch dictionary definition once
-    private Object fetchWordDefinition(String word) {
-        return dictionaryClient.get()
-                .uri("/en/{word}", word)
-                .retrieve()
-                .bodyToMono(Object.class)
-                .block();
+    private List<DefinitionDTO> fetchWordDefinition(String word) {
+        try {
+            DictionaryEntry[] entries = dictionaryClient.get()
+                    .uri("/en/{word}", word)
+                    .retrieve()
+                    .bodyToMono(DictionaryEntry[].class)
+                    .block();
+
+            if (entries == null || entries.length == 0) {
+                return Collections.emptyList();
+            }
+
+            return Arrays.stream(entries)
+                    .flatMap(entry -> entry.meanings().stream())
+                    .flatMap(meaning -> meaning.definitions().stream()
+                            .map(def -> new DefinitionDTO(def.definition(), meaning.partOfSpeech())))
+                    .collect(Collectors.toList());
+
+        } catch (WebClientResponseException ex) {
+            throw new RuntimeException("Dictionary API call failed for word '" + word + "': " + ex.getMessage());
+        } catch (Exception ex) {
+            throw new RuntimeException("Error fetching definition for word '" + word + "': " + ex.getMessage());
+        }
     }
 
-    // Thread-safe method returning cached or fresh response
     public Object getRandomWordWithDefinition() {
         String cacheKey = "wordOfTheDay";
 
-        Object result;
         synchronized (this) {
             Object cached = cache.getIfPresent(cacheKey);
-            if (cached != null) {
-                result = cached;
-            } else {
-                String word = fetchRandomWord();
-                Object definition = fetchWordDefinition(word);
+            if (cached != null) return cached;
 
-                result = Map.of("word", word, "definition", definition);
-                cache.put(cacheKey, result);
-            }
+            String word = fetchRandomWord();
+            List<DefinitionDTO> definitions = fetchWordDefinition(word);
+
+            Map<String, Object> result = Map.of("definitions", definitions);
+            cache.put(cacheKey, result);
+
+            return result;
         }
-        return result;
     }
 
-    // Manually clear the cache
     public void clearWordOfTheDayCache() {
         cache.invalidate("wordOfTheDay");
     }
