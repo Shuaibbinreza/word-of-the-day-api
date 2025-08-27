@@ -98,5 +98,3 @@ This project is for educational purposes and is free to use.
 ## 👨‍💻 Author
 
 **Shuaib Bin Reza**
-
-Do you also want me to add your **GitHub/LinkedIn links** under the author section for extra professionalism?
