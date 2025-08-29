@@ -50,7 +50,12 @@ GET /random-words?number=5
 #### Example Request:
 
 ```bash
-curl "http://localhost:8080/random-words?number=5"
+curl "http://localhost:8081/wordOfTheDay"
+```
+
+To clear the cache and get fresh response
+```bash
+curl "http://localhost:8081/wordOfTheDay/refresh"
 ```
 
 #### Example Response:
