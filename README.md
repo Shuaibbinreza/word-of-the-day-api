@@ -44,7 +44,8 @@ By default, the app will start on **[http://localhost:8080](http://localhost:808
 ### Fetch Random Words
 
 ```http
-GET /random-words?number=5
+GET /wordOfTheDay
+GET /wordOfTheDay/refresh
 ```
 
 #### Example Request:
@@ -53,7 +54,7 @@ GET /random-words?number=5
 curl "http://localhost:8081/wordOfTheDay"
 ```
 
-To clear the cache and get fresh response
+To clear the cache and get a fresh response
 ```bash
 curl "http://localhost:8081/wordOfTheDay/refresh"
 ```
@@ -61,7 +62,15 @@ curl "http://localhost:8081/wordOfTheDay/refresh"
 #### Example Response:
 
 ```json
-["apple","river","school","music","predecessor"]
+{
+  "word": "sejant",
+  "definitions": [
+    {
+      "definition": "Seated, sitting.",
+      "partOfSpeech": "adjective"
+    }
+  ]
+}
 ```
 
 ---
